@@ -91,12 +91,22 @@ export default function App() {
 
   const fetchMatches = async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
-    const dateStr = formatDateToString(selectedDate);
+    
+    // ĐỂ GIẢI QUYẾT LỖI LỆCH GIỜ MỸ VÀ GIỜ VN:
+    // Lấy phổ rộng dữ liệu của 3 ngày liên tiếp (Hôm qua, Hôm nay, Ngày mai)
+    const prevDate = new Date(selectedDate);
+    prevDate.setDate(selectedDate.getDate() - 1);
+    const nextDate = new Date(selectedDate);
+    nextDate.setDate(selectedDate.getDate() + 1);
+
+    const d1 = formatDateToString(prevDate);
+    const d2 = formatDateToString(nextDate);
+    const dateQuery = `${d1}-${d2}`; // Gửi yêu cầu từ d1 đến d2
 
     try {
       const results = await Promise.allSettled(
         LEAGUES.map(async (league) => {
-          const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${league.id}/scoreboard?dates=${dateStr}`);
+          const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${league.id}/scoreboard?dates=${dateQuery}`);
           if (!res.ok) return null;
           const data = await res.json();
           
@@ -106,9 +116,19 @@ export default function App() {
               const home = comp.competitors.find(c => c.homeAway === 'home');
               const away = comp.competitors.find(c => c.homeAway === 'away');
 
-              // Tính giờ Việt Nam
+              // Tính giờ Việt Nam chuẩn xác
               const eventDate = new Date(event.date);
               const vnDateObj = new Date(eventDate.getTime() + (eventDate.getTimezoneOffset() * 60000) + (7 * 3600000));
+              
+              // LỌC NGHIÊM NGẶT: CHỈ LẤY CÁC TRẬN THUỘC ĐÚNG VÀO NGÀY VN ĐANG CHỌN
+              if (
+                vnDateObj.getDate() !== selectedDate.getDate() ||
+                vnDateObj.getMonth() !== selectedDate.getMonth() ||
+                vnDateObj.getFullYear() !== selectedDate.getFullYear()
+              ) {
+                return null; // Bỏ qua nếu trận đấu không nằm trong ngày hiển thị
+              }
+
               const timeString = `${vnDateObj.getHours().toString().padStart(2, '0')}:${vnDateObj.getMinutes().toString().padStart(2, '0')}`;
 
               // Lấy điểm số từng hiệp (nếu có)
@@ -120,7 +140,7 @@ export default function App() {
               const homePen = home.shootoutScore;
               const awayPen = away.shootoutScore;
 
-              // Xử lý trạng thái chi tiết (Hiệp 1, Hiệp 2, Nghỉ, Hiệp phụ)
+              // Xử lý trạng thái chi tiết (Hiệp 1, Hiệp 2, Nghỉ HT, Hiệp phụ)
               let statusText = 'Chưa đá';
               let isLive = false;
               const period = event.status.period;
@@ -134,7 +154,7 @@ export default function App() {
               } else if (state === 'in') {
                 isLive = true;
                 const clock = event.status.displayClock;
-                if (detail.includes('Half')) statusText = '⚽ Nghỉ HT';
+                if (detail.includes('Half')) statusText = 'HT (Nghỉ)';
                 else if (period === 1) statusText = `🔴 H1 - ${clock}'`;
                 else if (period === 2) statusText = `🔴 H2 - ${clock}'`;
                 else if (period === 3) statusText = `🔴 HP1 - ${clock}'`;
@@ -165,10 +185,14 @@ export default function App() {
               };
             });
 
-            // SẮP XẾP TRẬN ĐẤU TRONG TỪNG GIẢI THEO THỜI GIAN
-            matches.sort((a, b) => a.rawDate - b.rawDate);
-
-            return { leagueInfo: league, matches };
+            // Loại bỏ các trận bằng null (khác ngày)
+            const validMatches = matches.filter(m => m !== null);
+            
+            if (validMatches.length > 0) {
+              // SẮP XẾP TRẬN ĐẤU TRONG TỪNG GIẢI THEO THỜI GIAN
+              validMatches.sort((a, b) => a.rawDate - b.rawDate);
+              return { leagueInfo: league, matches: validMatches };
+            }
           }
           return null;
         })
@@ -351,7 +375,7 @@ export default function App() {
 
                           {/* Extra Details (HT Score, Pen Score) */}
                           <div className="flex justify-center mt-2 gap-2">
-                            {(match.homeHT !== null && match.awayHT !== null && (match.state === 'post' || (match.isLive && (match.statusText.includes('H2') || match.statusText.includes('Nghỉ') || match.statusText.includes('HP'))))) && (
+                            {(match.homeHT !== null && match.awayHT !== null && (match.state === 'post' || (match.isLive && (match.statusText.includes('H2') || match.statusText.includes('HT') || match.statusText.includes('HP'))))) && (
                               <span className="text-[11px] text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
                                 HT: {match.homeHT}-{match.awayHT}
                               </span>
