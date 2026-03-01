@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, Clock, Trophy, Loader2, Activity } from 'lucide-react';
 
-// --- DANH SÁCH GIẢI ĐẤU (Có thêm thuộc tính order để sắp xếp giải) ---
+// --- DANH SÁCH GIẢI ĐẤU (Đã bổ sung đầy đủ Bóng đá Nữ & Châu Á) ---
 const LEAGUES = [
   // Châu Âu (Top)
   { id: 'eng.1', name: 'Ngoại Hạng Anh', color: 'bg-purple-600', text: 'text-purple-700', order: 1 },
@@ -22,11 +22,11 @@ const LEAGUES = [
   { id: 'bra.1', name: 'Serie A (Brazil)', color: 'bg-yellow-500', text: 'text-yellow-600', order: 12 },
   { id: 'arg.1', name: 'Liga Profesional (Arg)', color: 'bg-blue-400', text: 'text-blue-500', order: 13 },
   { id: 'mex.1', name: 'Liga MX', color: 'bg-green-600', text: 'text-green-700', order: 14 },
-  { id: 'usa.1', name: 'MLS', color: 'bg-blue-500', text: 'text-blue-600', order: 15 },
+  { id: 'usa.1', name: 'MLS (Mỹ)', color: 'bg-blue-500', text: 'text-blue-600', order: 15 },
 
   // Châu Á, Úc & Trung Đông
-  { id: 'kor.1', name: 'K League 1', color: 'bg-blue-700', text: 'text-blue-800', order: 16 },
-  { id: 'jpn.1', name: 'J1 League', color: 'bg-red-700', text: 'text-red-800', order: 17 },
+  { id: 'kor.1', name: 'K League 1 (Hàn Quốc)', color: 'bg-blue-700', text: 'text-blue-800', order: 16 },
+  { id: 'jpn.1', name: 'J1 League (Nhật)', color: 'bg-red-700', text: 'text-red-800', order: 17 },
   { id: 'tur.1', name: 'Süper Lig (Thổ)', color: 'bg-red-600', text: 'text-red-700', order: 18 },
   { id: 'chn.1', name: 'Super League (TQ)', color: 'bg-red-500', text: 'text-red-600', order: 19 },
   { id: 'aus.1', name: 'A-League (Úc)', color: 'bg-yellow-600', text: 'text-yellow-700', order: 20 },
@@ -39,11 +39,18 @@ const LEAGUES = [
   { id: 'idn.1', name: 'Liga 1 (Indo)', color: 'bg-red-500', text: 'text-red-600', order: 25 },
   { id: 'aff.championship', name: 'AFF Cup', color: 'bg-blue-600', text: 'text-blue-700', order: 26 },
   
-  // Trẻ, Nữ & Giao hữu
+  // Trẻ & Giao hữu
   { id: 'fifa.friendly', name: 'Giao hữu Quốc tế', color: 'bg-blue-400', text: 'text-blue-500', order: 27 },
   { id: 'club.friendly', name: 'Giao hữu CLB', color: 'bg-gray-500', text: 'text-gray-600', order: 28 },
   { id: 'afc.u23', name: 'U23 Châu Á', color: 'bg-indigo-500', text: 'text-indigo-600', order: 29 },
+  
+  // Bóng đá Nữ (Tất cả)
   { id: 'eng.w.1', name: 'Ngoại Hạng Anh (Nữ)', color: 'bg-pink-600', text: 'text-pink-700', order: 30 },
+  { id: 'usa.nwsl', name: 'VĐQG Nữ Mỹ (NWSL)', color: 'bg-pink-500', text: 'text-pink-600', order: 31 },
+  { id: 'uefa.womens.champions', name: 'Cúp C1 Châu Âu (Nữ)', color: 'bg-pink-600', text: 'text-pink-700', order: 32 },
+  { id: 'afc.w.champions', name: 'Cúp C1 Châu Á (Nữ)', color: 'bg-pink-500', text: 'text-pink-600', order: 33 },
+  { id: 'afc.womens.asian_cup', name: 'Asian Cup (Nữ)', color: 'bg-pink-500', text: 'text-pink-600', order: 34 },
+  { id: 'fifa.wwc', name: 'World Cup Nữ', color: 'bg-pink-700', text: 'text-pink-800', order: 35 },
 ];
 
 const getVNTime = () => {
@@ -92,7 +99,6 @@ export default function App() {
   const fetchMatches = async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     
-    // ĐỂ GIẢI QUYẾT LỖI LỆCH GIỜ MỸ VÀ GIỜ VN:
     // Lấy phổ rộng dữ liệu của 3 ngày liên tiếp (Hôm qua, Hôm nay, Ngày mai)
     const prevDate = new Date(selectedDate);
     prevDate.setDate(selectedDate.getDate() - 1);
